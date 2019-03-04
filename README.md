@@ -1,11 +1,11 @@
 # BigDataManagement
 Extending machine learning algorithms supported by SparkR
 
-## Team members: \\
-Karen Danielyan \\
-Nshan Potikyan \\
-Kristiina Uusna \\
-Indrek Polding \\
+## Team members: 
+Karen Danielyan \
+Nshan Potikyan \
+Kristiina Uusna \
+Indrek Polding \
 
 ## Project Description:
 The aim of the project is to extend the list of supported classification algorithms in SparkR by new algorithm called k-nearest neighbors.
