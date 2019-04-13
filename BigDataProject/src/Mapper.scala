@@ -14,7 +14,6 @@ object Mapper {
       dist_map = Map(test.keysIterator.toList(i) -> lst)
       dist_map_list ::= dist_map
     }
-
   }
   
   def DistanceFunction(tr_j: List[String], testInstance: List[String]) : Double = {
