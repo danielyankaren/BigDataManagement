@@ -9,6 +9,5 @@ object Main {
       for (j <- 1 until train.size) {
          val mapper = new Mapper.Distance(Map(train.keysIterator.toList(j)->train(j.toString)), test)
       }
-
   }
 }
