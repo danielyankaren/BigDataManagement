@@ -1,3 +1,5 @@
+package bdm_com.spark.scala.bdm_demo
+
 import scala.io.Source
 import java.io.{FileNotFoundException, IOException}
 import scala.collection.immutable.ListMap

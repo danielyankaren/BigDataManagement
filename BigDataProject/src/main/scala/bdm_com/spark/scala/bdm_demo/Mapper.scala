@@ -1,3 +1,5 @@
+package bdm_com.spark.scala.bdm_demo
+
 import scala.collection.mutable.Map
 import scala.math.sqrt
 
