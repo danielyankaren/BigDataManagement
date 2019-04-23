@@ -7,21 +7,41 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SQLContext
 
 object Main {
-//  var sc: SparkContext = null
   
   def main(args: Array[String]) {
+     //System.setProperty("hadoop.home.dir", "C:\\hadoop") //IF SPARK DOESN'T WORK, YOU SHOULD USE THIS
+     //More information about that what you should install:
+    //https://jaceklaskowski.gitbooks.io/mastering-apache-spark/spark-tips-and-tricks-running-spark-windows.html
     
-//    val conf = new SparkConf()
-//             .setMaster("local[2]")
-//             .setAppName("BDMProject")
-//    val sc = new SparkContext(conf)
-            
-//    val train2 = sc.textFile("BigDataProject\\ionosphere.data": String).map(line => converter.parserToLabeledPoint(line)).toDF().persist
+     val conf = new SparkConf()
+            .setMaster("local[2]")
+             .setAppName("BDMProject")
+     val sc = new SparkContext(conf)
+     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+   
+      val rdd= sqlContext.read.format("csv").option("header", "false").load("ionosphere.data") //read data in 
+      rdd.collect().foreach(println)
       val data = new DataImport.Import("ionosphere.data")
       val train = data.train
       val test = data.test
       for (j <- 1 until train.size) {
          val mapper = new Mapper.Distance(Map(train.keysIterator.toList(j)->train(j.toString)), test)
       }
+   
+//TODO: we need to use this somehow:
+//   val trainRdd: RDD[(String, LabeledPoint)]  = sc
+//  // Convert Map to Seq so it can passed to parallelize
+//  .parallelize(train.toSeq)
+//  .map{case (id, (labelInt, values)) => {
+//
+//      // Convert nested map to Seq so it can be passed to Vector
+//      val features = Vectors.sparse(nFeatures, values.toSeq)
+//
+//      // Convert label to Double so it can be used for LabeledPoint
+//      val label = labelInt.toDouble 
+//
+//      (id, LabeledPoint(label, features))
+// }}
+
   }
 }
