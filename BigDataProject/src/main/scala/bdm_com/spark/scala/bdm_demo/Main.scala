@@ -25,11 +25,23 @@ object Main {
       val test_rdd =  rdd.take(n).drop(200) //take out rest of the rows for testing set
                  
       rdd.collect().foreach(println)
+    
+    
       val data = new DataImport.Import("ionosphere.data")
       val train = data.train
       val test = data.test
-      for (j <- 1 until train.size) { 
-         val mapper = new Mapper.Distance(Map(train.keysIterator.toList(j)->train(j.toString)), test)
+      var splits_n = 20 //how many training data splits need
+      val train_split = Map[String, List[String]]()
+      for (j <- 1 until train.size) {
+        train_split += (j.toString -> train(j.toString))
+         if(j % splits_n == 0){
+           val mapper = new Mapper.Distance(train_split, test, j)
+           train_split.clear
+         }
+      }
+      if(!train_split.isEmpty){
+       val mapper = new Mapper.Distance(train_split, test, train.size)
+       train_split.clear
       }
    
 //TODO: we need to use this somehow:

@@ -14,7 +14,7 @@ object DataImport {
       var testLineNumber = 0
       for (line <- Source.fromFile(filename).getLines) {
         val feat = line.split(",").toList
-        if(trainLineNumber<200){
+        if(trainLineNumber<=200){
           trainLineNumber += 1
           train += (trainLineNumber.toString -> feat)
         }else{
