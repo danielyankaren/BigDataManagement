@@ -28,4 +28,5 @@ object Mapper {
     }
     return sqrt(sum)
   }
+  
 }
