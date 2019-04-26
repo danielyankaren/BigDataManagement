@@ -3,6 +3,10 @@ package bdm_com.spark.scala.bdm_demo
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SQLContext
+import scala.util.Random
+import org.apache.spark.sql.types._ 
+import scala.reflect._
+import org.apache.spark.rdd.RDD
 
 object Main {
   
@@ -18,13 +22,18 @@ object Main {
      val sc = new SparkContext(conf)
      val sqlContext = new SQLContext(sc)
    
-     val data = sqlContext.read.format("csv").option("header", "false").load("ionosphere.data").toDF() //read data in
-
+     val rdd = sqlContext.read.format("csv").option("header", "false").load("ionosphere.data").toDF().rdd //read data in
+      
      // Randomly splitting the data into train/test sets.
-     val Array(train, test) = data.randomSplit(Array(0.8, 0.2))
-
-
-     train.collect().foreach(println)
+     val Array(train, test) = rdd.randomSplit(Array(0.8, 0.2))
+     
+     //Make training data set splits:
+     var splitSize = 20    
+     val trainSplits = splitSample(train, splitSize)
+     print(trainSplits.head.collect.foreach(println)) //print out first split
+          
+     
+     //train.collect().foreach(println)
     
     
       //val data = new DataImport.Import("ionosphere.data")
@@ -60,4 +69,13 @@ object Main {
       // }
 
   }
+  
+  def splitSample[T :ClassTag](rdd: RDD[T], n: Int, seed: Long = 42): Seq[RDD[T]] = {
+  Vector.tabulate(n) { j =>
+    rdd.mapPartitions { data =>
+      Random.setSeed(seed)
+      data.filter { unused => scala.util.Random.nextInt(n) == j }
+    }
+  }
+}
 }
