@@ -43,17 +43,17 @@ object Main {
      val trainSplits = splitSample(train, splits)
      var classCol = 34 //class value column id
            
-     val allMappers = sc.emptyRDD[List[Map[String,List[Any]]]]
+     var allMappers = sc.emptyRDD[List[Map[String,List[Any]]]]
      
      for (n <- 0 to trainSplits.size-1) {
        val trainSplit = trainSplits.apply(n) //Training Data Split n
        val combinations = trainSplit.cartesian(test) //1:Training Data Split n, 2:Test Data Set - All combinations
        //combinations.collect().foreach(println) //to print out the result
        val mapper_n = combinations.map{case (a: (Long, Row), b: (Long, Row)) => DistanceFunction(a,b,classCol)}
-       mapper_n.collect().foreach(println) //to print out the n-th mapper output
-       //TODO: append mapper_n to the allMappers
+       //mapper_n.collect().foreach(println) //to print out the n-th mapper output
+       allMappers = allMappers.map(_.toList).union(mapper_n)
      }
-    
+    //print(allMappers.take(1).head)
      //print(trainSplits.head.collect.foreach(println)) //print out first split
           
      
