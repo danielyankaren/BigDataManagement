@@ -43,7 +43,7 @@ object Main {
      val trainSplits = splitSample(train, splits)
      var classCol = 34 //class value column id
            
-     var allMappers = sc.emptyRDD[List[Map[String,List[Any]]]]
+     var allMappers = sc.emptyRDD[Map[String,List[Any]]]
      
      for (n <- 0 to trainSplits.size-1) {
        val trainSplit = trainSplits.apply(n) //Training Data Split n
@@ -51,7 +51,7 @@ object Main {
        //combinations.collect().foreach(println) //to print out the result
        val mapper_n = combinations.map{case (a: (Long, Row), b: (Long, Row)) => DistanceFunction(a,b,classCol)}
        //mapper_n.collect().foreach(println) //to print out the n-th mapper output
-       allMappers = allMappers.map(_.toList).union(mapper_n)
+       allMappers = allMappers.union(mapper_n)
      }
     //print(allMappers.take(1).head)
      //print(trainSplits.head.collect.foreach(println)) //print out first split
@@ -103,11 +103,11 @@ object Main {
   }
 }
   
-  def DistanceFunction(trainInstance:(Long, Row), testInstance:(Long, Row), classCol: Int) : List[Map[String,List[Any]]]  = {
+  def DistanceFunction(trainInstance:(Long, Row), testInstance:(Long, Row), classCol: Int) : Map[String,List[Any]]  = {
     val class_tr = trainInstance._2(classCol)
     var sum = 0.0
     var dist_map = Map[String, List[Any]]()
-    var dist_map_list = List[Map[String, List[Any]]]()
+    //var dist_map_list = List[Map[String, List[Any]]]()
 //    val ex = "notNone"
     for (k <- 0 until testInstance._2.size-1) {
 //      try{val trj: Double = trainInstance._2.getString(5).toDouble}catch{case e: NumberFormatException => ex=="None"}
@@ -122,11 +122,11 @@ object Main {
 //      }
     }
     val dist_ij: Double = sqrt(sum)
-    var lst = List(trainInstance._1,dist_ij,class_tr)
+    val lst = List(trainInstance._1,dist_ij,class_tr)
     dist_map = Map(testInstance._1.toString -> lst)
-    dist_map_list ::= dist_map
+    //dist_map_list ::= dist_map
     
-    return dist_map_list
+    return dist_map
 }
    
 }
