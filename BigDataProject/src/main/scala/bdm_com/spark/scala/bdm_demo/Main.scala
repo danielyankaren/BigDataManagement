@@ -7,6 +7,7 @@ import scala.util.Random
 import org.apache.spark.sql.types._ 
 import scala.reflect._
 import org.apache.spark.rdd.RDD
+import scala.math.pow
 
 object Main {
   
@@ -22,15 +23,30 @@ object Main {
      val sc = new SparkContext(conf)
      val sqlContext = new SQLContext(sc)
    
-     val rdd = sqlContext.read.format("csv").option("header", "false").load("ionosphere.data").toDF().rdd //read data in
-      
+     //read data in
+     val rdd = sqlContext.read.format("csv").option("header", "false").load("ionosphere.data").toDF().rdd
+
      // Randomly splitting the data into train/test sets.
-     val Array(train, test) = rdd.randomSplit(Array(0.8, 0.2))
-     
+     val Array(data1, data2) = rdd.randomSplit(Array(0.8, 0.2))
+ 
+     //The input of the Mapper function is a <Key, Value> vector
+     //key : the record id of the training instance
+     //value: the set of feature values of the training instance
+     val train = data1.zipWithIndex.map(_.swap)
+     val test = data2.zipWithIndex.map(_.swap)
+          
      //Make training data set splits:
-     var splitSize = 20    
-     val trainSplits = splitSample(train, splitSize)
-     print(trainSplits.head.collect.foreach(println)) //print out first split
+     var splits = 20 //number of splits
+     val trainSplits = splitSample(train, splits)
+     
+     for (n <- 0 to trainSplits.size-1) {
+       val trainSplit = trainSplits.apply(n) //Training Data Split n
+       val combinations = trainSplit.cartesian(test) //1:Training Data Split n, 2:Test Data Set - All combinations
+       //combinations.collect.foreach(println) //to print out the result
+       //TODO: Give combinations to the Mapper       
+     }
+    
+     //print(trainSplits.head.collect.foreach(println)) //print out first split
           
      
      //train.collect().foreach(println)
@@ -74,7 +90,7 @@ object Main {
   Vector.tabulate(n) { j =>
     rdd.mapPartitions { data =>
       Random.setSeed(seed)
-      data.filter { unused => scala.util.Random.nextInt(n) == j }
+      data.filter { unused => Random.nextInt(n) == j }
     }
   }
 }
