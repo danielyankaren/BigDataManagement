@@ -33,6 +33,7 @@ object Mapper{
     var dist_map = Map[String, List[Any]]()
 //    val ex = "notNone"
     for (k <- 0 until testInstance._2.size-1) {
+        if(k!=classCol){
 //      try{val trj: Double = trainInstance._2.getString(5).toDouble}catch{case e: NumberFormatException => ex=="None"}
 //      try{val tsi: Double = testInstance._2.getString(5).toDouble}catch{case e: NumberFormatException => ex=="None"}
         val trj: Double = trainInstance._2.getString(k).toDouble
@@ -43,6 +44,7 @@ object Mapper{
         val square: Double = (diff * diff)
         sum +=  square
 //      }
+        }
     }
     val dist_ij: Double = sqrt(sum)
     val lst = List(trainInstance._1,dist_ij,class_tr)
