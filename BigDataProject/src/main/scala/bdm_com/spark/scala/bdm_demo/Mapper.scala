@@ -13,24 +13,21 @@ import scala.math.pow
 import scala.math.sqrt
 
 object Mapper{
-  class Distance(trainSplits: Seq[RDD[(Long, Row)]]  , test: RDD[(Long, org.apache.spark.sql.Row)] , classCol: Integer, allMappers: RDD[Map[String,List[Any]]]) extends Serializable{
-     var result: RDD[Map[String,List[Any]]] = allMappers
-     for (n <- 0 to trainSplits.size-1) {
-       val trainSplit = trainSplits.apply(n) //Training Data Split n
+  class Distance(sc: SparkContext, trainSplits: Seq[RDD[(Long, Row)]]  , test: RDD[(Long, Row)] , classCol: Integer) extends Serializable{
+
+     val result = trainSplits.map{case (a: RDD[(Long,Row)]) => MapperN(a)}
+     
+  def MapperN(trainSplit: RDD[(Long, Row)]) : RDD[(String, Row)]  = {
        val combinations = trainSplit.cartesian(test) //1:Training Data Split n, 2:Test Data Set - All combinations
        //combinations.collect().foreach(println) //to print out the result
        val mapper_n = combinations.map{case (a: (Long, Row), b: (Long, Row)) => DistanceFunction(a,b,classCol)}
-       //mapper_n.collect().foreach(println) //to print out the n-th mapper output
-       result = result.union(mapper_n)
+       return mapper_n
      }
-     //print(result.take(1).head)
-     //print(trainSplits.head.collect.foreach(println)) //print out first split
-  }
-  
-  private def DistanceFunction(trainInstance:(Long, Row), testInstance:(Long, Row), classCol: Int) : Map[String,List[Any]]  = {
+     
+     
+  def DistanceFunction(trainInstance:(Long, Row), testInstance:(Long, Row), classCol: Int) : (String, Row)  = {
     val class_tr = trainInstance._2(classCol)
     var sum = 0.0
-    var dist_map = Map[String, List[Any]]()
 //    val ex = "notNone"
     for (k <- 0 until testInstance._2.size-1) {
         if(k!=classCol){
@@ -47,10 +44,13 @@ object Mapper{
         }
     }
     val dist_ij: Double = sqrt(sum)
-    val lst = List(trainInstance._1,dist_ij,class_tr)
-    dist_map = Map(testInstance._1.toString -> lst)    
-    return dist_map
+    val row = Row(trainInstance._1,dist_ij,class_tr)
+    val ts = testInstance._1.toString
+    val dist_map = Main.sc.parallelize(List(row))
+    val mapper_n = dist_map.map(a => (ts,a))
+    return mapper_n.take(1).head
 }
+  }
 }
 
   
