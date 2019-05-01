@@ -12,18 +12,19 @@ import org.apache.spark.rdd.RDD
 import scala.math.pow
 import scala.math.sqrt
 
-object Main {
+object Main{
   
-  def main(args: Array[String]) {
-     System.setProperty("hadoop.home.dir", "C:\\hadoop")
+  private val conf = new SparkConf()
+            .setMaster("local[2]")
+             .setAppName("BDMProject")
+  private val sc = new SparkContext(conf)
+  private val sqlContext = new SQLContext(sc)
+    
+  def main(args: Array[String]){
+     //System.setProperty("hadoop.home.dir", "C:\\hadoop")
     //IF SPARK DOESN'T WORK, YOU SHOULD USE THIS
     //More information about that what you should install:
     //https://jaceklaskowski.gitbooks.io/mastering-apache-spark/spark-tips-and-tricks-running-spark-windows.html
-     val conf = new SparkConf()
-            .setMaster("local[2]")
-             .setAppName("BDMProject")
-     val sc = new SparkContext(conf)
-     val sqlContext = new SQLContext(sc)
    
      //read data in
      val rdd = sqlContext.read.format("csv").option("header", "false").load("ionosphere.data").toDF().rdd
@@ -44,6 +45,7 @@ object Main {
      //var allMappers = sc.emptyRDD[(String, Row)] //Value for all the Mapper's output
     var result: RDD[(String, Row)] = sc.emptyRDD[(String, Row)]
     result = result.union(trainSplits.map{case (a: RDD[(Long,Row)]) => doMapper(sc,result,a,classCol,test)})
+//    print(result.take(1).head)
 
 //    for (n <- 0 to trainSplits.size-1) {
 //      val trainSplit = trainSplits.apply(n) //Training Data Split n
@@ -60,7 +62,7 @@ object Main {
     //print(allMappers.take(1).head)
      
   }
-  private def doMapper(sc:SparkContext, result: RDD[(String, Row)],trainSplit: RDD[(Long,Row)], classCol: Integer, test: RDD[(Long, Row)]): (String, Row) ={
+   def doMapper(sc:SparkContext, result: RDD[(String, Row)],trainSplit: RDD[(Long,Row)], classCol: Integer, test: RDD[(Long, Row)]): (String, Row) ={
     var result2: RDD[(String, Row)] = result
 //    val trainSplit = trainSplits.apply(n) //Training Data Split n
     val combinations = trainSplit.cartesian(test) //1:Training Data Split n, 2:Test Data Set - All combinations
@@ -73,7 +75,7 @@ object Main {
     return res
   }
 
-  private def DistanceFunction(sc: SparkContext, trainInstance:(Long, Row), testInstance:(Long, Row), classCol: Int) : RDD[(String, Row)]  = {
+  def DistanceFunction(sc: SparkContext, trainInstance:(Long, Row), testInstance:(Long, Row), classCol: Int) : RDD[(String, Row)]  = {
     val class_tr = trainInstance._2(classCol)
     var sum = 0.0
     //    val ex = "notNone"
