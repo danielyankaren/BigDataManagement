@@ -38,30 +38,42 @@ object Main {
      val test = data2.zipWithIndex.map(_.swap)
      //Make training data set splits:
      var splits = 20 //number of splits
-     val trainSplits = splitSample(train, splits)
+     val trainSplits = sc.parallelize(splitSample(train, splits))
      var classCol: Integer = 34 //class value column id
      
-     var allMappers = sc.emptyRDD[(String, Row)] //Value for all the Mapper's output
-    var result: RDD[(String, Row)] = allMappers
-    for (n <- 0 to trainSplits.size-1) {
-      val trainSplit = trainSplits.apply(n) //Training Data Split n
-      val combinations = trainSplit.cartesian(test) //1:Training Data Split n, 2:Test Data Set - All combinations
-      val trainInstance = combinations.take(1).head._1
-      val testInstance = combinations.take(1).head._2
-      val class_tr = trainInstance._2(classCol)
-      //combinations.collect().foreach(println) //to print out the result
-      val mapper_n = combinations.map{case (a: (Long, Row), b: (Long, Row)) => DistanceFunction(a,b,classCol)}
-      //mapper_n.collect().foreach(println) //to print out the n-th mapper output
+     //var allMappers = sc.emptyRDD[(String, Row)] //Value for all the Mapper's output
+    var result: RDD[(String, Row)] = sc.emptyRDD[(String, Row)]
+    result = result.union(trainSplits.map{case (a: RDD[(Long,Row)]) => doMapper(sc,result,a,classCol,test)})
 
-      result = result.union(mapper_n.take(1).head)
-    }
+//    for (n <- 0 to trainSplits.size-1) {
+//      val trainSplit = trainSplits.apply(n) //Training Data Split n
+//      val combinations = trainSplit.cartesian(test) //1:Training Data Split n, 2:Test Data Set - All combinations
+//      //combinations.collect().foreach(println) //to print out the result
+//      val mapper_n = combinations.map{case (a: (Long, Row), b: (Long, Row)) => DistanceFunction(sc,a,b,classCol)}
+//      //mapper_n.collect().foreach(println) //to print out the n-th mapper output
+//
+//      result = result.union(mapper_n.take(1).head)
+//    }
 
 //     allMappers = new Mapper.Distance(trainSplits, test, classCol, allMappers).result
 
     //print(allMappers.take(1).head)
      
   }
-  private def DistanceFunction(trainInstance:(Long, Row), testInstance:(Long, Row), classCol: Int) : RDD[(String, Row)]  = {
+  private def doMapper(sc:SparkContext, result: RDD[(String, Row)],trainSplit: RDD[(Long,Row)], classCol: Integer, test: RDD[(Long, Row)]): (String, Row) ={
+    var result2: RDD[(String, Row)] = result
+//    val trainSplit = trainSplits.apply(n) //Training Data Split n
+    val combinations = trainSplit.cartesian(test) //1:Training Data Split n, 2:Test Data Set - All combinations
+    //combinations.collect().foreach(println) //to print out the result
+    val mapper_n = combinations.map{case (a: (Long, Row), b: (Long, Row)) => DistanceFunction(sc,a,b,classCol)}
+    //mapper_n.collect().foreach(println) //to print out the n-th mapper output
+    print(result2)
+    result2 = result2.union(mapper_n.collect().head)
+    val res = result2.collect().head
+    return res
+  }
+
+  private def DistanceFunction(sc: SparkContext, trainInstance:(Long, Row), testInstance:(Long, Row), classCol: Int) : RDD[(String, Row)]  = {
     val class_tr = trainInstance._2(classCol)
     var sum = 0.0
     //    val ex = "notNone"
