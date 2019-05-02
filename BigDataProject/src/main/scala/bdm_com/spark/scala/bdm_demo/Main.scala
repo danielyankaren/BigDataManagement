@@ -1,50 +1,52 @@
 package bdm_com.spark.scala.bdm_demo
 
 import org.apache.spark.SparkContext
-import org.apache.spark.rdd.EmptyRDD
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.Row
-import scala.util.Random
-import org.apache.spark.sql.types._ 
-import scala.reflect._
+import org.apache.spark.ml.feature.LabeledPoint
+import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.rdd.RDD
-import scala.math.pow
-import scala.math.sqrt
+import scala.reflect.ClassTag
+import scala.util.Random
+import org.apache.spark.SparkConf
+
 
 object Main {
-   val conf = new SparkConf()
-            .setMaster("local[2]")
-             .setAppName("BDMProject")
-   val sc = new SparkContext(conf)
+
+  val conf = new SparkConf()
+    .setMaster("local[2]")
+    .setAppName("BDMProject")
+
+  val sc = new SparkContext(conf)
 
   def main(args: Array[String]) {
      System.setProperty("hadoop.home.dir", "C:\\hadoop")
-    //IF SPARK DOESN'T WORK, YOU SHOULD USE THIS
-    //More information about that what you should install:
-    //https://jaceklaskowski.gitbooks.io/mastering-apache-spark/spark-tips-and-tricks-running-spark-windows.html
-     val sqlContext = new SQLContext(sc)
-   
-     //read data in
-     val rdd = sqlContext.read.format("csv").option("header", "false").load("ionosphere.data").toDF().rdd
 
-     // Randomly splitting the data into train/test sets.
-     val Array(data1, data2) = rdd.randomSplit(Array(0.8, 0.2))
- 
-     //The input of the Mapper function is a <Key, Value> vector
-     //key : the record id of the training instance
-     //value: the set of feature values of the training instance
-     val train = data1.zipWithIndex.map(_.swap)
-     val test = data2.zipWithIndex.map(_.swap)
-          
-     //Make training data set splits:
-     var splits = 20 //number of splits
-     val trainSplits = splitSample(train, splits)
-     var classCol: Integer = 34 //class value column id
-     
-     //var allMappers = sc.emptyRDD[(String, Row)] //Value for all the Mapper's output
-     
-     val allMappers = new Mapper.Distance(sc,trainSplits, test, classCol).result
+    val RawData: RDD[String] = sc.textFile("ionosphere.data")
+
+    val str_to_num = Map("g" -> "1.0", "b" -> "0.0")
+
+    val dataRaw = RawData.map(_.split(",")).map { csv =>
+      val label = str_to_num(csv.last).toDouble
+      val point = csv.init.map(_.toDouble)
+      (label, point)
+    }
+
+
+    val data: RDD[LabeledPoint] = dataRaw
+      .map { case (label, point) =>
+        LabeledPoint(label, Vectors.dense(point))
+      }
+
+    val Array(training: RDD[LabeledPoint],
+    test: RDD[LabeledPoint]) = data.randomSplit(Array(0.8, 0.2), seed = 1234L)
+
+    val trainRDD = training.zipWithIndex.map(_.swap)
+    val testRDD = test.zipWithIndex.map(_.swap)
+
+    val splits = 20
+
+    val trainSplits = splitSample(trainRDD, splits)
+
+    val allMappers = new Mapper.Distance(sc,trainSplits, testRDD).result
      allMappers.take(1).head.collect().foreach(println) //print the first Mapper output
    
   }
