@@ -46,8 +46,14 @@ object Main {
 
     val trainSplits = splitSample(trainRDD, splits)
 
-    val allMappers = new Mapper.Distance(sc,trainSplits, testRDD).result
-     allMappers.take(1).head.collect().foreach(println) //print the first Mapper output
+    val allMappers = new Mapper.Distance(trainSplits, testRDD).result
+    val listMappers = allMappers.reduce(_ union _)
+    var grouped = listMappers.groupBy {case (k, v) => k}
+    val reduceOutput = grouped.map { case (a) =>  new Reducer.Reduce(a)  }
+    
+    println(reduceOutput.collect().apply(0).sortedLists)
+
+    //allMappers.take(1).head.collect().foreach(println) //print the first Mapper output
    
   }
   
