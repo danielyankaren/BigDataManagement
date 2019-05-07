@@ -7,8 +7,7 @@ import scala.math.pow
 import scala.math.sqrt
 
 object Mapper{
-  class Distance(sc: SparkContext,
-                 trainSplits: Seq[RDD[(Long, LabeledPoint)]],
+  class Distance(trainSplits: Seq[RDD[(Long, LabeledPoint)]],
                  testRDD: RDD[(Long, LabeledPoint)]) extends Serializable {
 
     val result = trainSplits.map {features: RDD[(Long, LabeledPoint)] => MapperN(features) }
@@ -25,7 +24,6 @@ object Mapper{
         case (a: (Long, LabeledPoint), b: (Long, LabeledPoint)) =>
           DistanceFunction(a, b)
       }
-
       mapper_n
     }
 
