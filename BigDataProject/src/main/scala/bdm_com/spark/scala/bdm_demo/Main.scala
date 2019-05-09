@@ -47,14 +47,22 @@ object Main {
     val trainSplits = splitSample(trainRDD, splits)
 
     val allMappers = new Mapper.Distance(trainSplits, testRDD).result
-    val listMappers = allMappers.reduce(_ union _)
-    var grouped = listMappers.groupBy {case (k, v) => k}
-    val reduceOutput = grouped.map { case (a) =>  new Reducer.Reduce(a)  }
-    
-    println(reduceOutput.collect().apply(0).sortedLists)
 
-    //allMappers.take(1).head.collect().foreach(println) //print the first Mapper output
-   
+    // combining the partitioned RDDs
+    val listMappers = allMappers.reduce(_ union _)
+
+    // grouping values by key
+    val grouped = listMappers.groupByKey
+
+    // ordering the values based on distance
+    val ordered = grouped.map(KeyValues => {
+      val sorting = KeyValues._2.toList.sortBy(value => value.apply(1))
+      (KeyValues._1,sorting)
+    })
+
+    ordered.collect().foreach(println)
+
+
   }
   
   def splitSample[T :ClassTag](rdd: RDD[T], n: Int, seed: Long = 42): Seq[RDD[T]] = {
