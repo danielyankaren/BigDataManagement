@@ -4,8 +4,6 @@ import org.apache.spark.SparkContext
 import org.apache.spark.ml.feature.LabeledPoint
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.rdd.RDD
-import scala.reflect.ClassTag
-import scala.util.Random
 import org.apache.spark.SparkConf
 
 
@@ -37,14 +35,19 @@ object Main {
       }
 
     val Array(training: RDD[LabeledPoint],
-    test: RDD[LabeledPoint]) = data.randomSplit(Array(0.8, 0.2), seed = 1234L)
+              test: RDD[LabeledPoint]) =
+      data.randomSplit(Array(0.8, 0.2), seed = 1234L)
 
     val trainRDD = training.zipWithIndex.map(_.swap)
     val testRDD = test.zipWithIndex.map(_.swap)
 
     val splits = 20
 
-    val trainSplits = splitSample(trainRDD, splits)
+    // Array of 'split' number of ones
+    val ones = Array.fill(splits)(1.0)
+
+    // randomly splitting the trainRDD into 'split' parts
+    val trainSplits = trainRDD.randomSplit(ones).toSeq
 
     val allMappers = new Mapper.Distance(trainSplits, testRDD).result
 
@@ -65,14 +68,5 @@ object Main {
 
   }
   
-  def splitSample[T :ClassTag](rdd: RDD[T], n: Int, seed: Long = 42): Seq[RDD[T]] = {
-  Vector.tabulate(n) { j =>
-    rdd.mapPartitions { data =>
-      Random.setSeed(seed)
-      data.filter { unused => Random.nextInt(n) == j }
-    }
-  }
-}
-  
-   
+
 }
