@@ -18,9 +18,13 @@ object Main {
   def main(args: Array[String]) {
      System.setProperty("hadoop.home.dir", "C:\\hadoop")
 
+    // TODO: change the mapping to
+    // function generally, without explicitly
+    // defining the labels
+    val str_to_num = Map("g" -> "1.0", "b" -> "0.0")
+
     val RawData: RDD[String] = sc.textFile("ionosphere.data")
 
-    val str_to_num = Map("g" -> "1.0", "b" -> "0.0")
 
     val dataRaw = RawData.map(_.split(",")).map { csv =>
       val label = str_to_num(csv.last).toDouble
@@ -43,11 +47,14 @@ object Main {
 
     val splits = 20
 
-    // Array of 'split' number of ones
+    // Array of 'splits' number of ones
     val ones = Array.fill(splits)(1.0)
 
-    // randomly splitting the trainRDD into 'split' parts
+    // randomly splitting the trainRDD into 'splits' parts
     val trainSplits = trainRDD.randomSplit(ones).toSeq
+
+    // TODO: implement the same with sc.parallelize
+    // to parallelize the data splits
 
     val allMappers = new Mapper.Distance(trainSplits, testRDD).result
 
@@ -57,13 +64,24 @@ object Main {
     // grouping values by key
     val grouped = listMappers.groupByKey
 
+
     // ordering the values based on distance
     val ordered = grouped.map(KeyValues => {
-      val sorting = KeyValues._2.toList.sortBy(value => value.apply(1))
+      val sorting = KeyValues._2.toList
+        .sortBy(value => value.apply(1))
       (KeyValues._1,sorting)
     })
 
-    ordered.collect().foreach(println)
+    // this should be inside the Reducer class
+
+    // nearest neighbours
+    val K = 5
+
+    // keeping first K values
+    val topK = ordered.mapValues(Values =>
+      Values.take(K))
+
+    topK.collect.foreach(println)
 
 
   }

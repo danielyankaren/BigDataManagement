@@ -1,12 +1,13 @@
 package bdm_com.spark.scala.bdm_demo
 
-import org.apache.spark.SparkContext
+
 import org.apache.spark.ml.feature.LabeledPoint
 import org.apache.spark.rdd.RDD
 import scala.math.pow
 import scala.math.sqrt
 
 object Mapper{
+
   class Distance(trainSplits: Seq[RDD[(Long, LabeledPoint)]],
                  testRDD: RDD[(Long, LabeledPoint)]) extends Serializable {
 
@@ -14,7 +15,7 @@ object Mapper{
 
     def MapperN(trainSplit: RDD[(Long, LabeledPoint)]): RDD[(Long, List[Double])] = {
 
-      //Defining all combinations between
+      // Defining all combinations between
       // partitioned training set
       // and the test set
 
@@ -28,8 +29,10 @@ object Mapper{
     }
 
 
-    def distance(xs: Array[Double], ys: Array[Double]) = {
-      sqrt((xs zip ys).map { case (x, y) => pow(y - x, 2) }.sum)
+    def distance(xs: Array[Double],
+                 ys: Array[Double]) = {
+      sqrt((xs zip ys).map {
+        case (x, y) => pow(y - x, 2) }.sum)
     }
 
     def DistanceFunction(trainInstance: (Long, LabeledPoint),
