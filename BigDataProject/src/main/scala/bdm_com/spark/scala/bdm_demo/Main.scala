@@ -71,18 +71,12 @@ object Main {
         .sortBy(value => value.apply(1))
       (KeyValues._1,sorting)
     })
+    
+    val K = 7 // nearest neighbours
+    val Z = 2
 
-    // this should be inside the Reducer class
-
-    // nearest neighbours
-    val K = 5
-
-    // keeping first K values
-    val topK = ordered.mapValues(Values =>
-      Values.take(K))
-
-    topK.collect.foreach(println)
-
+    val reducerOutput = new Reducer.Reduce(ordered,K, Z)
+    print(reducerOutput)
 
   }
   
