@@ -54,7 +54,8 @@ object Main {
     val trainSplits = trainRDD.randomSplit(ones).toSeq
 
     // TODO: implement the same with sc.parallelize
-    // to parallelize the data splits
+    // to parallelize the data splits - In my opinion we can't parallelize RDD because it is not allowed to use the 
+    // Mapper class function for the RDD indside the RDD
 
     val allMappers = new Mapper.Distance(trainSplits, testRDD).result
 
@@ -73,7 +74,7 @@ object Main {
     })
     
     val K = 7 // nearest neighbours
-    val Z = 2
+    val Z = 4
 
     val reducerOutput = new Reducer.Reduce(ordered,K, Z)
     print(reducerOutput)
