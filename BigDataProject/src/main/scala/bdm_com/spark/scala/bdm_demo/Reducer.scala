@@ -1,6 +1,7 @@
 package bdm_com.spark.scala.bdm_demo
 
 import org.apache.spark.rdd.RDD
+import scala.math.min
 
 
 object Reducer{
@@ -17,8 +18,11 @@ object Reducer{
     //calculating distance means by class:
     val distanceMeansByClass = groupedTopZ.mapValues(Values => calcDistanceMean(Values))
     
+    //choosing label with the min distance
+    val output = distanceMeansByClass.mapValues(Values => chooseMinDist(Values))
+    
     //topK.collect.foreach(println)
-    distanceMeansByClass.foreach(println)
+    output.foreach(println)
         
     def groupByClass(lists: List[List[Double]]): Map[Double,List[List[Double]]]   = { 
       
@@ -46,17 +50,13 @@ object Reducer{
       mu
       
      }
-        
     
-    // TODO:Implement the reducer part
-    // possible solution may be the following
-    // 1.separate the ids of the train instances
-    //   per label
-    // 2.calculate the centroids of the instances
-    // 3.calculate the distance between the centroids
-    // and the test instance
-    // 4.choose label with the min distance
-
+    def chooseMinDist(meanDist: Map[Double,Double]): Double ={
+      //meanDist.filter{case (k,v) => v == meanDist.values.min}
+      val comb = meanDist.minBy{ case (key, value) => value }
+      comb._1
+     }
+        
     }
 
 
