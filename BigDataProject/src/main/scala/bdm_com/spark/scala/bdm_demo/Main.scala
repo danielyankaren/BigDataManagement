@@ -74,10 +74,11 @@ object Main {
     })
     
     val K = 7 // nearest neighbours
-    val Z = 4
 
-    val reducerOutput = new Reducer.Reduce(ordered,K, Z)
-    print(reducerOutput)
+    val reducerOutput = new Reducer.Reduce(ordered,K)
+
+    reducerOutput.groupedTopK.collect.foreach(println)
+
 
   }
   
