@@ -75,9 +75,13 @@ object Main {
     
     val K = 7 // nearest neighbours
 
-    val reducerOutput = new Reducer.Reduce(trainRDD.collectAsMap(),ordered,K)
+    //val reducerOutput = new Reducer.Reduce(trainRDD.collectAsMap(),ordered,K)
+    //reducerOutput.centroids.collect.foreach(println)
 
-    reducerOutput.centroids.collect.foreach(println)
+    val reducerOutput = new Reducer.Reduce(ordered,K,trainRDD,testRDD)
+
+    // example centroid
+    print(reducerOutput.mu.toList)
 
 
   }
