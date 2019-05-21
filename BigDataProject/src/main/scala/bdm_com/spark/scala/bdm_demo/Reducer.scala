@@ -15,19 +15,22 @@ object Reducer{
 
     val groupedTopK = topK.mapValues(Values => groupByClass(Values))
 
-    
+
     def groupByClass(lists: List[List[Double]]): Map[Double,List[Double]]   = {
 
       // Grouping the train ids per label:
-        val groupByClass = lists.map(
-          list => (list.apply(2),list.head) )
-          // groupByKey alternative
-          .groupBy(_._1)
-          .map { case (k, v) => k -> v.map { _._2}}
+      val groupByClass = lists.map(
+        list => (list.apply(2), list.head))
+        // groupByKey alternative
+        .groupBy(_._1)
+        .map { case (k, v) => k -> v.map {
+          _._2
+        }
+        }
 
       groupByClass
 
-      }
+    }
 
 
     //val groupedTopZ = topK.mapValues(Values => groupByClass(Values))
