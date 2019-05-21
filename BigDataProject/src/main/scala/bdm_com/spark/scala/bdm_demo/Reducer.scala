@@ -1,12 +1,14 @@
 package bdm_com.spark.scala.bdm_demo
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.ml.feature.LabeledPoint
+import org.apache.spark.broadcast.Broadcast
 
 
 
 object Reducer{
 
-  class Reduce(dist: RDD[(Long, List[List[Double]])] ,
+  class Reduce(train_data: scala.collection.Map[Long,LabeledPoint],dist: RDD[(Long, List[List[Double]])] ,
                K: Int) extends Serializable {
     
     // keeping first K values
@@ -14,9 +16,11 @@ object Reducer{
       Values.take(K))
 
     val groupedTopK = topK.mapValues(Values => groupByClass(Values))
+    
+    val centroids = groupedTopK.mapValues(Values => findCentroids(Values))
 
 
-    def groupByClass(lists: List[List[Double]]): Map[Double,List[Double]]   = {
+    def groupByClass(lists: List[List[Double]]): Map[Double,List[Double]]     = {
 
       // Grouping the train ids per label:
       val groupByClass = lists.map(
@@ -27,8 +31,21 @@ object Reducer{
           _._2
         }
         }
+      
 
       groupByClass
+
+    }
+    
+    def findCentroids(train_ids: Map[Double,List[Double]] ): Map[Double,List[org.apache.spark.ml.linalg.Vector]]       = {
+
+      //find test instances by class:
+      val testInstancesByClass = train_ids.mapValues(Values => Values.map(tr_id => train_data.get(tr_id.toLong).get.features)).map(identity)
+      testInstancesByClass
+      
+      //TODO: sum the test instances and divide by Z
+      
+      
 
     }
 
