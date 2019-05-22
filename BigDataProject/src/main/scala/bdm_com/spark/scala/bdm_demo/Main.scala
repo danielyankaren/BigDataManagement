@@ -7,6 +7,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkConf
 
 
+
+
 object Main {
 
   val conf = new SparkConf()
@@ -75,16 +77,16 @@ object Main {
     
     val K = 7 // nearest neighbours
 
-    //val reducerOutput = new Reducer.Reduce(trainRDD.collectAsMap(),ordered,K)
-    //reducerOutput.centroids.collect.foreach(println)
 
-    val reducerOutput = new Reducer.Reduce(ordered,K,trainRDD,testRDD)
+    val reducerOutput = new Reducer.Reduce(trainRDD.collectAsMap(),
+                                           testRDD.collectAsMap(),
+                                           ordered,K)
 
-    // example centroid
-    print(reducerOutput.mu.toList)
+    reducerOutput.result.collect.foreach(println)
 
 
   }
-  
+
+
 
 }

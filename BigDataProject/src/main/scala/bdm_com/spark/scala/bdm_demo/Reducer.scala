@@ -2,31 +2,41 @@ package bdm_com.spark.scala.bdm_demo
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.ml.feature.LabeledPoint
-//import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.ml.linalg.Vector
+
+import scala.math.{pow, sqrt}
 
 
 
 object Reducer{
 
-  class Reduce(//train_data: scala.collection.Map[Long,LabeledPoint],
+  class Reduce(trainRDD: scala.collection.Map[Long,LabeledPoint],
+               testRDD: scala.collection.Map[Long,LabeledPoint],
                dist: RDD[(Long, List[List[Double]])] ,
-               K: Int,
-               trainRDD: RDD[(Long,LabeledPoint)],
-               testRDD: RDD[(Long,LabeledPoint)]
+               K: Int
               ) extends Serializable {
     
     // keeping first K values
     val topK = dist.mapValues(Values =>
       Values.take(K))
 
-    val groupedTopK = topK.mapValues(Values => groupByClass(Values))
-    
-    //val centroids = groupedTopK.mapValues(Values => findCentroids(Values))
+    val groupedTopK = topK.mapValues(Values => CentroidByClass(Values))
 
 
-    def groupByClass(lists: List[List[Double]]): Map[Double,List[Double]]     = {
+    val result = groupedTopK.map(keyValue => (keyValue._1,
+      keyValue._2.mapValues(
+        mu => DistCentroid(mu,keyValue._1.toInt)
+      )
+    )).mapValues(pair => chooseMinDist(pair))
+
+
+    def chooseMinDist(meanDist: Map[Double,Double]): Double ={
+      val comb = meanDist.minBy{ case (key, value) => value }
+      comb._1
+     }
+
+    def CentroidByClass(lists: List[List[Double]]): Map[Double, Array[Double]] = {
 
       // Grouping the train ids per label:
       val groupByClass = lists.map(
@@ -34,17 +44,31 @@ object Reducer{
         // groupByKey alternative
         .groupBy(_._1)
         .map { case (k, v) => k -> v.map {
-          _._2
+          _._2.toInt
         }
         }
-      
 
-      groupByClass
+      groupByClass.mapValues(v => centroid(v))
+
+      }
+
+    def DistCentroid(centroid: Array[Double],
+                     ts_id: Int): Double = {
+
+      val test_feature = testRDD.get(ts_id).get.features.toArray
+
+      distance(centroid,test_feature)
+
 
     }
 
-    // example train_ids
-    val train_ids: List[Int] = List.range(1, 10)
+
+    def distance(xs: Array[Double],
+                 ys: Array[Double]) = {
+      sqrt((xs zip ys).map {
+        case (x, y) => pow(y - x, 2) }.sum)
+    }
+
 
     def centroid(vec: List[Int]): Array[Double] = {
 
@@ -59,7 +83,6 @@ object Reducer{
 
     }
 
-    val mu = centroid(train_ids)
 
     def FeatureSum(tuple: (Vector, Int),
                    tuple1: (Vector, Int)): (Vector, Int) = {
@@ -76,71 +99,6 @@ object Reducer{
     }
 
 
-    //    def findCentroids(train_ids: Map[Double,List[Double]] ): Map[Double,List[org.apache.spark.ml.linalg.Vector]]       = {
-//
-//      //find test instances by class:
-//      val testInstancesByClass = train_ids.mapValues(Values => Values.map(tr_id => train_data.get(tr_id.toLong).get.features)).map(identity)
-//      testInstancesByClass
-//
-//      //TODO: sum the test instances and divide by Z
-//
-//
-//
-//    }
-
-
-
-
-
-
-
-
-
-
-    //val groupedTopZ = topK.mapValues(Values => groupByClass(Values))
-
-    //calculating distance means by class:
-    //val distanceMeansByClass = groupedTopZ.mapValues(Values => calcDistanceMean(Values))
-    
-    //choosing label with the min distance
-    //val output = distanceMeansByClass.mapValues(Values => chooseMinDist(Values))
-    
-    //topK.collect.foreach(println)
-    //output.foreach(println)
-        
-    //def groupByClass(lists: List[List[Double]]): Map[Double,List[List[Double]]]   = {
-      
-      //Group values by training data class values:
-    //  val groupByClass = lists.groupBy(list => list.apply(2))
-      //separating Z instances from each of the classes:
-    //  val topZ = groupByClass.mapValues(Values => Values.take(Z))
-    //  topZ
-      
-    //}
-    
-    //def calcDistanceMean(input: Map[Double,List[List[Double]]] ): Map[Double,Double]   = {
-
-    //  val distanceMeans = input.mapValues(Values => mean(Values))
-    //  distanceMeans
-      
-    //}
-    
-    //def mean(classBasedDistances: List[List[Double]]): Double ={
-      
-      //Put all the distance values in the one Map
-    //  val distances = classBasedDistances.map(list => list.apply(1))
-    // val sum = distances.sum
-    //  val mu = sum/distances.size
-    //  mu
-      
-    // }
-    
-    //def chooseMinDist(meanDist: Map[Double,Double]): Double ={
-      //meanDist.filter{case (k,v) => v == meanDist.values.min}
-    //  val comb = meanDist.minBy{ case (key, value) => value }
-    //  comb._1
-    // }
-        
     }
 
 
