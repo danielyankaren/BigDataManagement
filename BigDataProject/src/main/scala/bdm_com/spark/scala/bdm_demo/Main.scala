@@ -16,23 +16,23 @@ object Main {
     .setAppName("BDMProject")
 
   val sc = new SparkContext(conf)
-
+  sc.setLogLevel("ERROR")
   def main(args: Array[String]) {
      System.setProperty("hadoop.home.dir", "C:\\hadoop")
 
-    // TODO: change the mapping to
-    // function generally, without explicitly
-    // defining the labels
-    val str_to_num = Map("g" -> "1.0", "b" -> "0.0")
 
     val RawData: RDD[String] = sc.textFile("ionosphere.data")
 
+    // taking distinct classes and transforming it to Map
+    val str_to_num = RawData.map(_.split(",").last).distinct().zipWithIndex.collect().toMap
 
     val dataRaw = RawData.map(_.split(",")).map { csv =>
-      val label = str_to_num(csv.last).toDouble
+      val label =  str_to_num(csv.last).toDouble
       val point = csv.init.map(_.toDouble)
       (label, point)
+
     }
+
 
 
     val data: RDD[LabeledPoint] = dataRaw
@@ -75,7 +75,7 @@ object Main {
       (KeyValues._1,sorting)
     })
     
-    val K = 7 // nearest neighbours
+    val K = args(0).toInt // nearest neighbours, argument passed from the run config.
 
 
     val reducerOutput = new Reducer.Reduce(trainRDD.collectAsMap(),
@@ -83,7 +83,7 @@ object Main {
                                            ordered,K)
 
     reducerOutput.result.collect.foreach(println)
-
+    str_to_num.foreach(println)
 
   }
 
