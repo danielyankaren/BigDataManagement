@@ -37,12 +37,15 @@ object Main {
         case (label, point) =>
           LabeledPoint(label, Vectors.dense(point))
       }
+    
+    val suffledData = data.distinct()
 
     val Array(training: RDD[LabeledPoint],
       test: RDD[LabeledPoint]) =
-      data.randomSplit(Array(0.8, 0.2), seed = 1234L)
+      suffledData.randomSplit(Array(0.8, 0.2), seed = 1234L)
     //test.saveAsTextFile("test")
     val trainRDD = training.zipWithIndex.map(_.swap)
+
     val testRDD = test.zipWithIndex.map(_.swap)
 
     val splits = args(0).toInt 
@@ -83,6 +86,7 @@ object Main {
       ordered, K)
 
     reducerOutput.result.collect.foreach(println)
+    str_to_num.foreach(println)
 
     timeEnd = System.nanoTime
     val timeDiff = (timeEnd - timeBeg) / 1e9
