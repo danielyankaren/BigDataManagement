@@ -45,7 +45,7 @@ object Main {
     val trainRDD = training.zipWithIndex.map(_.swap)
     val testRDD = test.zipWithIndex.map(_.swap)
 
-    val splits = 20
+    val splits = args(0).toInt 
 
     // Array of 'splits' number of ones
     val ones = Array.fill(splits)(1.0)
@@ -75,7 +75,7 @@ object Main {
       (KeyValues._1, sorting)
     })
 
-    val K = args(0).toInt // nearest neighbours, argument passed from the run config.
+    val K = args(1).toInt // nearest neighbours, argument passed from the run config.
 
     val reducerOutput = new Reducer.Reduce(
       trainRDD.collectAsMap(),
