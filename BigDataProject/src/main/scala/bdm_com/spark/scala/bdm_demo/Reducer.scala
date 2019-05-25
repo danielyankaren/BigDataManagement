@@ -16,20 +16,29 @@ object Reducer{
                dist: RDD[(Long, List[List[Double]])] ,
                K: Int
               ) extends Serializable {
-    
-    // keeping first K values
-    val topK = dist.mapValues(Values =>
-      Values.take(K))
 
-    val groupedTopK = topK.mapValues(Values => CentroidByClass(Values))
+    val result = dist.map{ case value: (Long, List[List[Double]]) => doReduce(value,K)}
 
+      def doReduce(dist: (Long, List[List[Double]]),
+                 K: Int): (Long, Double) ={
 
-    val result = groupedTopK.map(keyValue => (keyValue._1,
-      keyValue._2.mapValues(
-        mu => DistCentroid(mu,keyValue._1.toInt)
-      )
-    )).mapValues(pair => chooseMinDist(pair))
+      // keeping first K values
+      val topK = (dist._1,dist._2.take(K))
 
+      val groupedTopK = (topK._1, CentroidByClass(topK._2))
+
+      val result = (groupedTopK._1,groupedTopK._2.mapValues(
+        mu => DistCentroid(mu, groupedTopK._1.toInt)
+      ))
+      val result2 = (result._1,chooseMinDist(result._2))
+//        groupedTopK.map { case keyValue: (Long, Map[Double, Array[Double]])
+//      => (keyValue._1,
+//        keyValue._2.mapValues(
+//          mu => DistCentroid(mu, keyValue._1.toInt)
+//        )
+//      )
+      result2
+    }
 
     def chooseMinDist(meanDist: Map[Double,Double]): Double ={
       val comb = meanDist.minBy{ case (key, value) => value }
@@ -48,8 +57,8 @@ object Reducer{
         }
         }
 
-      groupByClass.mapValues(v => centroid(v))
-
+      val f = groupByClass.map{v:(Double, List[Int]) => (v._1, centroid(v._2))}
+      f
       }
 
     def DistCentroid(centroid: Array[Double],

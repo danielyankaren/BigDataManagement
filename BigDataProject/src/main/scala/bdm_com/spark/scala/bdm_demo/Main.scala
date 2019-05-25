@@ -20,7 +20,9 @@ object Main {
   def main(args: Array[String]) {
      System.setProperty("hadoop.home.dir", "C:\\hadoop")
 
-
+    var timeBeg: Long = 0l
+    var timeEnd: Long = 0l
+    timeBeg = System.nanoTime
     val RawData: RDD[String] = sc.textFile("ionosphere.data")
 
     // taking distinct classes and transforming it to Map
@@ -43,7 +45,7 @@ object Main {
     val Array(training: RDD[LabeledPoint],
               test: RDD[LabeledPoint]) =
       data.randomSplit(Array(0.8, 0.2), seed = 1234L)
-
+    //test.saveAsTextFile("test")
     val trainRDD = training.zipWithIndex.map(_.swap)
     val testRDD = test.zipWithIndex.map(_.swap)
 
@@ -55,9 +57,12 @@ object Main {
     // randomly splitting the trainRDD into 'splits' parts
     val trainSplits = trainRDD.randomSplit(ones).toSeq
 
+    //val trainSplits2 = sc.broadcast(trainRDD.randomSplit(ones))
+
+    //val trainSplits3 = sc.parallelize(trainRDD.randomSplit(ones))
     // TODO: implement the same with sc.parallelize
     // to parallelize the data splits - In my opinion we can't parallelize RDD because it is not allowed to use the 
-    // Mapper class function for the RDD indside the RDD
+    // Mapper class function for the RDD inside the RDD
 
     val allMappers = new Mapper.Distance(trainSplits, testRDD).result
 
@@ -74,13 +79,17 @@ object Main {
         .sortBy(value => value.apply(1))
       (KeyValues._1,sorting)
     })
-    
+
     val K = args(0).toInt // nearest neighbours, argument passed from the run config.
 
 
     val reducerOutput = new Reducer.Reduce(trainRDD.collectAsMap(),
                                            testRDD.collectAsMap(),
                                            ordered,K)
+
+    timeEnd = System.nanoTime
+    val timeDiff = (timeEnd - timeBeg) / 1e9
+    print("Time taken: " + timeDiff + " seconds" + "\n")
 
     reducerOutput.result.collect.foreach(println)
     str_to_num.foreach(println)
