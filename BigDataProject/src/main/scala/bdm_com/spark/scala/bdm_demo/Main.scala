@@ -92,6 +92,17 @@ object Main {
     val timeDiff = (timeEnd - timeBeg) / 1e9
     print("Time taken: " + timeDiff + " seconds" + "\n")
 
-  }
 
+    val reals=test.map(_.label).collect
+    val results = reducerOutput.result.map(_._2).collect
+    val diffs=difference(reals, results)
+    val accu=diffs.filter(i => i==0.0).length.toDouble/reals.length.toDouble
+    print("Accuracy: " + accu + "\n")
+    str_to_num.foreach(println)
+  }
+  def difference(xs: Array[Double],
+               ys: Array[Double]) = {
+    (xs zip ys).map {
+      case (x, y) => (y - x) }
+  }
 }
