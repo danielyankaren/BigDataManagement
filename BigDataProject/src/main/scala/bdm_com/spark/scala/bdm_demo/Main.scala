@@ -36,7 +36,6 @@ object Main {
     }
 
 
-
     val data: RDD[LabeledPoint] = dataRaw
       .map { case (label, point) =>
         LabeledPoint(label, Vectors.dense(point))
