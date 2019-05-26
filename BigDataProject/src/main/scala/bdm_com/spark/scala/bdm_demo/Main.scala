@@ -1,10 +1,9 @@
 package bdm_com.spark.scala.bdm_demo
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{HashPartitioner, SparkConf, SparkContext}
 import org.apache.spark.ml.feature.LabeledPoint
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.rdd.RDD
-import org.apache.spark.SparkConf
 
 object Main {
 
@@ -20,7 +19,7 @@ object Main {
     var timeBeg: Long = 0l
     var timeEnd: Long = 0l
     timeBeg = System.nanoTime
-    val RawData: RDD[String] = sc.textFile("wine.data")
+    val RawData: RDD[String] = sc.textFile("ionosphere.data")
     
     // taking distinct classes and transforming it to Map
     val str_to_num = RawData.map(_.split(",").last).distinct().zipWithIndex.collect().toMap
@@ -38,12 +37,15 @@ object Main {
           LabeledPoint(label, Vectors.dense(point))
       }
     
-    val suffledData = data.distinct()
+    val suffledData = data.mapPartitions(iter => {
+      val rng = new scala.util.Random()
+      iter.map((rng.nextInt, _))
+    }).partitionBy(new HashPartitioner(data.partitions.size)).values
 
     val Array(training: RDD[LabeledPoint],
       test: RDD[LabeledPoint]) =
       suffledData.randomSplit(Array(0.8, 0.2), seed = 1234L)
-    //test.saveAsTextFile("test")
+
     val trainRDD = training.zipWithIndex.map(_.swap)
 
     val testRDD = test.zipWithIndex.map(_.swap)
@@ -85,20 +87,20 @@ object Main {
       testRDD.collectAsMap(),
       ordered, K)
 
-    reducerOutput.result.collect.foreach(println)
-    str_to_num.foreach(println)
+    val redurs=reducerOutput.result
 
     timeEnd = System.nanoTime
     val timeDiff = (timeEnd - timeBeg) / 1e9
     print("Time taken: " + timeDiff + " seconds" + "\n")
-
+    redurs.collect.foreach(println)
+    str_to_num.foreach(println)
 
     val reals=test.map(_.label).collect
     val results = reducerOutput.result.map(_._2).collect
     val diffs=difference(reals, results)
     val accu=diffs.filter(i => i==0.0).length.toDouble/reals.length.toDouble
     print("Accuracy: " + accu + "\n")
-    str_to_num.foreach(println)
+
   }
   def difference(xs: Array[Double],
                ys: Array[Double]) = {
