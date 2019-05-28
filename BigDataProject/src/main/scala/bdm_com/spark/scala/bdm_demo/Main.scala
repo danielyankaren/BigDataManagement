@@ -3,6 +3,7 @@ package bdm_com.spark.scala.bdm_demo
 import org.apache.spark.{HashPartitioner, SparkConf, SparkContext}
 import org.apache.spark.ml.feature.LabeledPoint
 import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.rdd.RDD
 
 object Main {
@@ -19,11 +20,13 @@ object Main {
     var timeBeg: Long = 0l
     var timeEnd: Long = 0l
     timeBeg = System.nanoTime
-    val RawData: RDD[String] = sc.textFile("ionosphere.data")
-    
+    // Reading in data
+    val RawData: RDD[String] = sc.textFile("wine.data")
+
     // taking distinct classes and transforming it to Map
     val str_to_num = RawData.map(_.split(",").last).distinct().zipWithIndex.collect().toMap
 
+    // converting featurea and label to double with a help of str_to_num map
     val dataRaw = RawData.map(_.split(",")).map { csv =>
       val label = str_to_num(csv.last).toDouble
       val point = csv.init.map(_.toDouble)
@@ -36,20 +39,24 @@ object Main {
         case (label, point) =>
           LabeledPoint(label, Vectors.dense(point))
       }
-    
+
+    //suffling data before making train and test sets
     val suffledData = data.mapPartitions(iter => {
-      val rng = new scala.util.Random()
+      val rng = new scala.util.Random(seed=1234L)
       iter.map((rng.nextInt, _))
     }).partitionBy(new HashPartitioner(data.partitions.size)).values
 
+    // spliting data: 80% training, 20% testing
     val Array(training: RDD[LabeledPoint],
       test: RDD[LabeledPoint]) =
       suffledData.randomSplit(Array(0.8, 0.2), seed = 1234L)
+
 
     val trainRDD = training.zipWithIndex.map(_.swap)
 
     val testRDD = test.zipWithIndex.map(_.swap)
 
+    // Get number of splits from program arguments
     val splits = args(0).toInt 
 
     // Array of 'splits' number of ones
@@ -58,12 +65,6 @@ object Main {
     // randomly splitting the trainRDD into 'splits' parts
     val trainSplits = trainRDD.randomSplit(ones).toSeq
 
-    //val trainSplits2 = sc.broadcast(trainRDD.randomSplit(ones))
-
-    //val trainSplits3 = sc.parallelize(trainRDD.randomSplit(ones))
-    // TODO: implement the same with sc.parallelize
-    // to parallelize the data splits - In my opinion we can't parallelize RDD because it is not allowed to use the
-    // Mapper class function for the RDD inside the RDD
 
     val allMappers = new Mapper.Distance(trainSplits, testRDD).result
 
@@ -82,29 +83,27 @@ object Main {
 
     val K = args(1).toInt // nearest neighbours, argument passed from the run config.
 
+    //reducer takes grouped mapper output, train and test dataset and K as a argument
     val reducerOutput = new Reducer.Reduce(
       trainRDD.collectAsMap(),
       testRDD.collectAsMap(),
       ordered, K)
 
-    val redurs=reducerOutput.result
+    // output of result used in calculating accuracy
+    val reduceresult=reducerOutput.result
 
+    //calculating program working time
     timeEnd = System.nanoTime
     val timeDiff = (timeEnd - timeBeg) / 1e9
     print("Time taken: " + timeDiff + " seconds" + "\n")
-    redurs.collect.foreach(println)
-    str_to_num.foreach(println)
 
-    val reals=test.map(_.label).collect
-    val results = reducerOutput.result.map(_._2).collect
-    val diffs=difference(reals, results)
-    val accu=diffs.filter(i => i==0.0).length.toDouble/reals.length.toDouble
-    print("Accuracy: " + accu + "\n")
+    //evaluating value for calculating accuracy
+    val metrics = new MulticlassMetrics(reduceresult.map{case line => (line._2,line._3)})
 
-  }
-  def difference(xs: Array[Double],
-               ys: Array[Double]) = {
-    (xs zip ys).map {
-      case (x, y) => (y - x) }
+    //calculating accuracy
+    val precision = metrics.accuracy
+
+    print("Accuracy: " + precision + "\n")
+
   }
 }
