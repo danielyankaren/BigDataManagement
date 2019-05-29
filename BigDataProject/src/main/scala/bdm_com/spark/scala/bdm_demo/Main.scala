@@ -101,9 +101,9 @@ object Main {
     val metrics = new MulticlassMetrics(reduceresult.map{case line => (line._2,line._3)})
 
     //calculating accuracy
-    val precision = metrics.accuracy
+    val accuracy = metrics.accuracy
 
-    print("Accuracy: " + precision + "\n")
+    print("Accuracy: " + accuracy + "\n")
 
   }
 }
