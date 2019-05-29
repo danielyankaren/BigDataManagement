@@ -14,44 +14,49 @@ object Main {
 
   val sc = new SparkContext(conf)
   sc.setLogLevel("ERROR")
+
   def main(args: Array[String]) {
     System.setProperty("hadoop.home.dir", "C:\\hadoop")
 
     var timeBeg: Long = 0l
     var timeEnd: Long = 0l
     timeBeg = System.nanoTime
+
     // Reading in data
     val RawData: RDD[String] = sc.textFile("wine.data")
 
     // taking distinct classes and transforming it to Map
-    val str_to_num = RawData.map(_.split(",").last).distinct().zipWithIndex.collect().toMap
+    val str_to_num = RawData.map(_.split(",").last)
+                            .distinct().zipWithIndex
+                            .collect().toMap
 
-    // converting featurea and label to double with a help of str_to_num map
+    // defining the (label,feature) pairs with str_to_num map
     val dataRaw = RawData.map(_.split(",")).map { csv =>
       val label = str_to_num(csv.last).toDouble
-      val point = csv.init.map(_.toDouble)
-      (label, point)
+      val feature = csv.init.map(_.toDouble)
+      (label, feature)
 
     }
 
     val data: RDD[LabeledPoint] = dataRaw
       .map {
-        case (label, point) =>
-          LabeledPoint(label, Vectors.dense(point))
+        case (label, feature) =>
+          LabeledPoint(label, Vectors.dense(feature))
       }
 
-    //suffling data before making train and test sets
-    val suffledData = data.mapPartitions(iter => {
-      val rng = new scala.util.Random(seed=1234L)
-      iter.map((rng.nextInt, _))
-    }).partitionBy(new HashPartitioner(data.partitions.size)).values
+    // shuffling data before making train and test RDDs
+    val shuffledData = data.mapPartitions(iter => {
+      val random = new scala.util.Random(seed=1234L)
+      iter.map((random.nextInt, _))
+    }).partitionBy(new HashPartitioner(data.partitions.length)).values
 
-    // spliting data: 80% training, 20% testing
+    // splitting data: 80% training, 20% testing
     val Array(training: RDD[LabeledPoint],
       test: RDD[LabeledPoint]) =
-      suffledData.randomSplit(Array(0.8, 0.2), seed = 1234L)
+      shuffledData.randomSplit(Array(0.8, 0.2),
+                               seed = 1234L)
 
-
+    // indexing the rows
     val trainRDD = training.zipWithIndex.map(_.swap)
 
     val testRDD = test.zipWithIndex.map(_.swap)
@@ -66,7 +71,8 @@ object Main {
     val trainSplits = trainRDD.randomSplit(ones).toSeq
 
 
-    val allMappers = new Mapper.Distance(trainSplits, testRDD).result
+    val allMappers = new Mapper.Distance(trainSplits,
+                                         testRDD).result
 
     // combining the partitioned RDDs
     val listMappers = allMappers.reduce(_ union _)
@@ -81,29 +87,36 @@ object Main {
       (KeyValues._1, sorting)
     })
 
-    val K = args(1).toInt // nearest neighbours, argument passed from the run config.
+    // number of nearest neighbours
+    // passed from the run config.
+    val K = args(1).toInt
 
-    //reducer takes grouped mapper output, train and test dataset and K as a argument
+    // reducer takes train, test RDDs,
+    // the Mapper output and K as inputs
     val reducerOutput = new Reducer.Reduce(
       trainRDD.collectAsMap(),
       testRDD.collectAsMap(),
       ordered, K)
 
-    // output of result used in calculating accuracy
-    val reduceresult=reducerOutput.result
+    // classification results
+    val reduceResult = reducerOutput.result
 
-    //calculating program working time
+    // calculating the execution time
     timeEnd = System.nanoTime
     val timeDiff = (timeEnd - timeBeg) / 1e9
     print("Time taken: " + timeDiff + " seconds" + "\n")
 
-    //evaluating value for calculating accuracy
-    val metrics = new MulticlassMetrics(reduceresult.map{case line => (line._2,line._3)})
+    // evaluating the classification
+    val metrics = new MulticlassMetrics(reduceResult.map{
+      case line => (line._2,line._3)
+    })
 
-    //calculating accuracy
+    // calculating accuracy
     val accuracy = metrics.accuracy
 
     print("Accuracy: " + accuracy + "\n")
 
+
   }
+
 }

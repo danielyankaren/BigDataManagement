@@ -11,7 +11,9 @@ object Mapper{
   class Distance(trainSplits: Seq[RDD[(Long, LabeledPoint)]],
                  testRDD: RDD[(Long, LabeledPoint)]) extends Serializable {
 
-    val result = trainSplits.map {features: RDD[(Long, LabeledPoint)] => MapperN(features) }
+    val result = trainSplits.map{
+      features: RDD[(Long, LabeledPoint)] => MapperN(features)
+    }
 
     def MapperN(trainSplit: RDD[(Long, LabeledPoint)]): RDD[(Long, List[Double])] = {
 

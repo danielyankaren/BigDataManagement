@@ -15,27 +15,44 @@ object Reducer {
       dist:     RDD[(Long, List[List[Double]])],
       K:        Int) extends Serializable {
 
-    val result = dist.map { case value: (Long, List[List[Double]]) => ReduceNresult(value, K) }
+    val result = dist.map {
+      case value: (Long, List[List[Double]]) => ReducerResult(value, K)
+    }
 
-    //obtaining predicted class value result(ts_id, predicted value, real value)-this form is needed for calculating accuracy
-    def ReduceNresult(dist: (Long, List[List[Double]]), K: Int): (Long, Double, Double) = {
+    // obtaining predicted class value result
+    // (ts_id, predicted label, actual label)
+    def ReducerResult(dist: (Long, List[List[Double]]), K: Int): (Long, Double, Double) = {
 
       // keeping first K values
       val topK = (dist._1, dist._2.take(K))
       
-      //centroid calculation
+      // centroid calculation
       val centroidByClass = (topK._1, CentroidByClass(topK._2))
       
-     //calculating distance between centroid and test instance
-      val distanceByClass = (centroidByClass._1, centroidByClass._2.mapValues(
-        mu => DistCentroid(mu, centroidByClass._1.toInt)))
+     // calculating distance between centroid and test instance
+      val distanceByClass = (centroidByClass._1,
+                             centroidByClass._2.mapValues(
+                               mu => DistCentroid(mu, centroidByClass._1.toInt)
+                             )
+      )
 
-      //finding which centroid the test instance have the minimum distance
-      val result = (distanceByClass._1, chooseMinDist(distanceByClass._2.map{case mp =>(mp._1,mp._2._1)}),distanceByClass._2.map{case mp2 => mp2._2._2}.head)
+      val centroidDistance = distanceByClass._2.mapValues(value => value._1)
+
+      val actualLabel = distanceByClass._2.map(
+        keyValue => keyValue._2._2
+      ).head
+
+      // getting the label of the centroid
+      // having the closest distance to the test instance
+
+      val result = (distanceByClass._1,
+                    chooseMinDist(centroidDistance),
+                    actualLabel)
 
       result
     }
-    //choose minimum value from all combinations by distance
+
+    // choose minimum value for distance per label
     def chooseMinDist(meanDist: Map[Double, Double]): Double = {
       val comb = meanDist.minBy { case (key, value) => value }
       comb._1
@@ -54,8 +71,8 @@ object Reducer {
           }
         }
 
-      val classcentroid = groupByClass.map { v: (Double, List[Int]) => (v._1, centroid(v._2)) }
-      classcentroid
+      val centroidLabel = groupByClass.map { v: (Double, List[Int]) => (v._1, centroid(v._2)) }
+      centroidLabel
     }
 
     def DistCentroid(
@@ -64,6 +81,7 @@ object Reducer {
 
       val test_feature = testRDD.get(ts_id).get.features.toArray
       val test_label = testRDD.get(ts_id).get.label
+
       (distance(centroid, test_feature),test_label)
 
     }
