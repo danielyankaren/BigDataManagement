@@ -8,9 +8,5 @@ Kristiina Uusna \
 Indrek Polding 
 
 ## Project Description:
-The aim of the project is to extend the list of supported classification algorithms in SparkR by new algorithm called k-nearest neighbors.
+The aim of the project is to extend the list of supported classification algorithms in SparkR by new algorithm called Z-KNN, which is an alternative for distributed k-nearest neighbors classifier introduced in the following paper ["A Distributed K Nearest Neighbor Classifier for Big Data"](https://www.researchgate.net/publication/324833142_A_Distributed_K_Nearest_Neighbor_Classifier_for_Big_Data) by Tamer Tulgar and others.
 \
-Idea of the algorithm:\
-For each test instance you have to find the K closest training instances and then predict most frequent label. \
-We are going to learn Scala functional programming and implement the same classifier over Spark Framework. \
-We are going to compare the performance of our implementation with k-nearest neighbors from Scikit Learn package. 
